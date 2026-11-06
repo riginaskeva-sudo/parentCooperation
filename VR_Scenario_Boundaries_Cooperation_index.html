@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>VR – Όταν το παιδί δεν θέλει να συνεργαστεί</title>
+  <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+  <style>
+    html, body { margin:0; width:100%; height:100%; overflow:hidden; font-family:Arial, sans-serif; background:#18232b; }
+    #help {
+      position:fixed; left:12px; right:12px; bottom:10px; z-index:5;
+      color:#fff; background:rgba(15,25,32,.72); border-radius:10px;
+      padding:8px 11px; font-size:12px; text-align:center; pointer-events:none;
+    }
+    #topbar {
+      position:fixed; top:10px; left:10px; z-index:5; display:flex; gap:8px;
+    }
+    .topbtn {
+      border:0; border-radius:8px; padding:9px 12px; background:rgba(15,25,32,.78);
+      color:white; font-size:13px; cursor:pointer;
+    }
+    #status {
+      position:fixed; top:12px; right:10px; z-index:5; color:#fff;
+      background:rgba(15,25,32,.65); padding:8px 10px; border-radius:8px; font-size:12px;
+    }
+    .a-enter-vr { bottom:55px !important; }
+  </style>
+</head>
+<body>
+  <div id="topbar">
+    <button class="topbtn" id="restart">↻ Επανεκκίνηση</button>
+  </div>
+  <div id="status">Σενάριο 2 · Όρια & συνεργασία</div>
+  <div id="help">Κοίταξε ένα κουμπί για περίπου 1,2″ ή πάτησέ το με το ποντίκι / την αφή.</div>
+
+  <a-scene background="color: #d8e3e6" renderer="colorManagement: true"
+           vr-mode-ui="enabled: true"
+           cursor="rayOrigin: mouse"
+           raycaster="objects: .clickable"
+           embedded>
+    <a-assets>
+      <a-mixin id="panel" geometry="primitive: plane; width: 2.35; height: .68"
+        material="color: #203944; shader: flat; opacity: .96"
+        text="align: center; anchor: center; color: #ffffff; width: 2.15; wrapCount: 38"></a-mixin>
+    </a-assets>
+
+    <!-- Απλό, ήρεμο δωμάτιο -->
+    <a-sky color="#dce7e8"></a-sky>
+    <a-plane rotation="-90 0 0" width="18" height="18" color="#c8bba8"></a-plane>
+    <a-plane position="0 2.5 -4" width="18" height="5" color="#e9e2d8"></a-plane>
+    <a-plane position="0 2.5 4" rotation="0 180 0" width="18" height="5" color="#e9e2d8"></a-plane>
+    <a-plane position="-5 2.5 0" rotation="0 90 0" width="8" height="5" color="#e2d9ce"></a-plane>
+    <a-plane position="5 2.5 0" rotation="0 -90 0" width="8" height="5" color="#e2d9ce"></a-plane>
+
+    <!-- Χαλί και παιχνίδια -->
+    <a-cylinder position="0 .015 -2.1" rotation="-90 0 0" radius="1.35" height=".025"
+                color="#a9b9b0"></a-cylinder>
+    <a-box position="-.65 .18 -2.05" width=".38" height=".34" depth=".34" color="#d68d54"></a-box>
+    <a-box position="-.22 .14 -2.18" width=".32" height=".26" depth=".32" color="#6f9eaa"></a-box>
+    <a-sphere position=".3 .15 -2.1" radius=".17" color="#d7b75c"></a-sphere>
+    <a-box position=".65 .12 -2.25" width=".28" height=".22" depth=".28" color="#8d9dbb"></a-box>
+
+    <!-- Απλοποιημένη, μη ρεαλιστική φιγούρα παιδιού -->
+    <a-entity position="0 0 -2.65">
+      <a-cylinder position="0 .68 0" radius=".24" height=".68" color="#6d91a0"></a-cylinder>
+      <a-sphere position="0 1.18 0" radius=".23" color="#d7aa86"></a-sphere>
+      <a-sphere position="-.085 1.21 .19" radius=".025" color="#27343a"></a-sphere>
+      <a-sphere position=".085 1.21 .19" radius=".025" color="#27343a"></a-sphere>
+      <a-box position="-.13 .23 0" width=".13" height=".42" depth=".15" color="#465b68"></a-box>
+      <a-box position=".13 .23 0" width=".13" height=".42" depth=".15" color="#465b68"></a-box>
+    </a-entity>
+
+    <a-entity id="cameraRig" position="0 1.6 0">
+      <a-camera look-controls wasd-controls="enabled: false">
+        <a-entity cursor="fuse: true; fuseTimeout: 1200"
+                  position="0 0 -1"
+                  geometry="primitive: ring; radiusInner: .008; radiusOuter: .014"
+                  material="color: #ffffff; shader: flat"
+                  raycaster="objects: .clickable"></a-entity>
+      </a-camera>
+    </a-entity>
+
+    <!-- Κεντρικό περιεχόμενο -->
+    <a-entity id="ui" position="0 1.65 -2.1">
+      <a-plane id="mainPanel" width="2.65" height="1.05" color="#173642" material="shader: flat; opacity: .96"></a-plane>
+      <a-text id="heading" value="Όταν το παιδί δεν θέλει να συνεργαστεί"
+              position="0 .34 .015" align="center" color="#ffffff" width="2.45"
+              wrap-count="34" font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"></a-text>
+      <a-text id="bodyText" value="Μια σύντομη καθημερινή στιγμή: το παιδί δυσκολεύεται να σταματήσει το παιχνίδι για να ετοιμαστεί για ύπνο."
+              position="0 -.05 .015" align="center" color="#f2f5f4" width="2.35"
+              wrap-count="43"></a-text>
+      <a-entity id="buttons" position="0 -.85 .03"></a-entity>
+    </a-entity>
+  </a-scene>
+
+<script>
+(() => {
+  const buttonsEl = document.getElementById('buttons');
+  const headingEl = document.getElementById('heading');
+  const bodyEl = document.getElementById('bodyText');
+  const panelEl = document.getElementById('mainPanel');
+  const uiEl = document.getElementById('ui');
+
+  const choices = [
+    {
+      label: '1. «Σου είπα ότι τελείωσε! Πήγαινε τώρα για ύπνο!»',
+      reaction: '«Μα δεν με ακούς ποτέ! Δεν θέλω να σου μιλήσω.»',
+      reflection: 'Η έντονη επιβολή μπορεί να σταματήσει προσωρινά τη συμπεριφορά, αλλά συχνά αφήνει το παιδί να αισθάνεται ότι δεν ακούστηκε.'
+    },
+    {
+      label: '2. «Εντάξει, παίξε λίγο ακόμη και μετά θα κοιμηθείς.»',
+      reaction: '«Ωραία! Θα παίξω κι άλλο!»',
+      reflection: 'Η υποχώρηση αποφεύγει τη σύγκρουση εκείνη τη στιγμή, αλλά μπορεί να κάνει το όριο ασαφές ή διαπραγματεύσιμο.'
+    },
+    {
+      label: '3. «Καταλαβαίνω ότι θέλεις να συνεχίσεις. Διάλεξε ένα τελευταίο παιχνίδι και μετά ετοιμαζόμαστε.»',
+      reaction: '«Εντάξει… Θα διαλέξω ένα τελευταίο.»',
+      reflection: 'Η αναγνώριση του συναισθήματος μαζί με ένα σαφές όριο βοηθά το παιδί να νιώσει ότι ακούγεται, χωρίς να ακυρώνεται η ρουτίνα.'
+    }
+  ];
+
+  let step = 'intro';
+  let selected = null;
+
+  function clearButtons() {
+    buttonsEl.innerHTML = '';
+  }
+
+  function addButton(label, y, action, height = .42, width = 2.45) {
+    const btn = document.createElement('a-entity');
+    btn.setAttribute('position', `0 ${y} 0`);
+    btn.setAttribute('class', 'clickable');
+    btn.setAttribute('geometry', `primitive: plane; width: ${width}; height: ${height}`);
+    btn.setAttribute('material', 'color: #286273; shader: flat');
+    btn.setAttribute('text', `value: ${label}; align: center; anchor: center; color: #ffffff; width: ${width * .91}; wrapCount: 42; lineHeight: 48`);
+    btn.setAttribute('data-clickable', 'true');
+    btn.addEventListener('click', action);
+    btn.addEventListener('mouseenter', () => btn.setAttribute('material', 'color: #397f91; shader: flat'));
+    btn.addEventListener('mouseleave', () => btn.setAttribute('material', 'color: #286273; shader: flat'));
+    buttonsEl.appendChild(btn);
+  }
+
+  function showIntro() {
+    step = 'intro'; selected = null; clearButtons();
+    headingEl.setAttribute('value', 'Όταν το παιδί δεν θέλει να συνεργαστεί');
+    bodyEl.setAttribute('value', 'Το παιδί παίζει και έρχεται η ώρα να ετοιμαστεί για ύπνο. Όταν του ζητάς να σταματήσει, αντιδρά:');
+    addButton('Έναρξη', -.05, showChild, .48, 1.35);
+  }
+
+  function showChild() {
+    step = 'child'; clearButtons();
+    headingEl.setAttribute('value', 'Το παιδί λέει:');
+    bodyEl.setAttribute('value', '«Δεν θέλω να σταματήσω να παίζω! Θέλω να συνεχίσω!»');
+    addButton('Συνέχεια', -.05, showChoices, .48, 1.45);
+  }
+
+  function showChoices() {
+    step = 'choices'; clearButtons();
+    headingEl.setAttribute('value', 'Πώς θα απαντούσες;');
+    bodyEl.setAttribute('value', 'Επίλεξε την αντίδραση που θα έδινες σε αυτή τη στιγμή.');
+    choices.forEach((choice, i) => {
+      addButton(choice.label, -.48 - i * .58, () => showReaction(i), .5, 2.55);
+    });
+    uiEl.setAttribute('position', '0 1.72 -2.1');
+    panelEl.setAttribute('height', '2.35');
+  }
+
+  function showReaction(index) {
+    step = 'reaction'; selected = index; clearButtons();
+    headingEl.setAttribute('value', 'Η αντίδραση του παιδιού');
+    bodyEl.setAttribute('value', choices[index].reaction);
+    addButton('Δες τον αναστοχασμό', -.12, showReflection, .48, 2.0);
+    uiEl.setAttribute('position', '0 1.65 -2.1');
+    panelEl.setAttribute('height', '1.25');
+  }
+
+  function showReflection() {
+    step = 'reflection'; clearButtons();
+    headingEl.setAttribute('value', 'Σκέψου την επιλογή σου');
+    bodyEl.setAttribute('value', choices[selected].reflection + ' Τι θα μπορούσες να πεις ώστε να αναγνωρίσεις το συναίσθημα και να κρατήσεις το όριο;');
+    addButton('Ολοκλήρωση', -.2, showEnd, .48, 1.6);
+    uiEl.setAttribute('position', '0 1.65 -2.1');
+    panelEl.setAttribute('height', '1.55');
+  }
+
+  function showEnd() {
+    step = 'end'; clearButtons();
+    headingEl.setAttribute('value', 'Ολοκλήρωση');
+    bodyEl.setAttribute('value', 'Δεν υπάρχει μία «τέλεια» φράση. Στόχος είναι να συνδυάζουμε την κατανόηση του συναισθήματος με σαφή, σταθερά και κατάλληλα για την ηλικία όρια.');
+    addButton('Ξεκίνα ξανά', -.2, showIntro, .48, 1.7);
+    uiEl.setAttribute('position', '0 1.65 -2.1');
+    panelEl.setAttribute('height', '1.55');
+  }
+
+  document.getElementById('restart').addEventListener('click', showIntro);
+  showIntro();
+})();
+</script>
+</body>
+</html>
