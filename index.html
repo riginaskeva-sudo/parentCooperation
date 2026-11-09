@@ -44,7 +44,7 @@ a-scene{position:fixed;inset:0;width:100vw;height:100vh}
   <a-entity id="gazeReticle" position="0 0 -1" geometry="primitive:ring;radiusInner:.008;radiusOuter:.014" material="color:white;shader:flat"></a-entity>
   <a-entity id="mouseCursor" cursor="rayOrigin:mouse" raycaster="objects:.gazeable;far:8"></a-entity>
   <a-entity position="0 .34 -1.55">
-   <a-plane width="1.95" height=".92" position="0 0 0" material="color:#172b38;opacity:.92"></a-plane>
+   <a-plane width="1.95" height=".92" position="0 0 0" material="color:#172b38;opacity:.58;transparent:true;shader:flat"></a-plane>
    <a-plane id="title" width="1.82" height=".22" position="0 .30 .025" material="shader:flat;transparent:true;color:#ffffff"></a-plane>
    <a-plane id="message" width="1.82" height=".56" position="0 -.12 .025" material="shader:flat;transparent:true;color:#ffffff"></a-plane>
   </a-entity>
@@ -91,14 +91,14 @@ function placeChoices(){
  // Exact interaction pattern from the first, working scenario: choices are world-space
  // entities, not DOM buttons and not children of the camera.
  const parentPose=["parent","reaction","reflection","end"].includes(stage);
- const x=parentPose?-1:0,y=parentPose?1.5:1.15,z=parentPose?.45:.65,yaw=parentPose?28:0;
+ const x=parentPose?-1:0,y=parentPose?1.78:1.38,z=parentPose?.45:.65,yaw=parentPose?28:0;
  const distance=2.0,rad=yaw*Math.PI/180;
  const px=x-Math.sin(rad)*distance,pz=z-Math.cos(rad)*distance;
  $("choices").setAttribute("position",`${px} ${y} ${pz}`);
  $("choices").setAttribute("rotation",`0 ${yaw} 0`);
 }
 function buttons(arr,fn){placeChoices();for(let i=0;i<3;i++){const active=i<arr.length&&!!arr[i];$("c"+i).setAttribute("visible",active);paint("cv-l"+i,arr[i]||"",44,2);}window.action=fn;}
-function move(parent){$("rig").setAttribute("animation__pos","property:position;to:"+(parent?"-1 1.5 .45":"0 1.15 .65")+";dur:800");$("rig").setAttribute("animation__rot","property:rotation;to:"+(parent?"0 28 0":"0 0 0")+";dur:800");}
+function move(parent){$("rig").setAttribute("animation__pos","property:position;to:"+(parent?"-1 1.78 .45":"0 1.38 .65")+";dur:800");$("rig").setAttribute("animation__rot","property:rotation;to:"+(parent?"0 28 0":"0 0 0")+";dur:800");}
 function intro(){stage="intro";selected=-1;text("Η ώρα του ύπνου","Το παιδί παίζει στο δωμάτιό του. Όταν του ζητάς να σταματήσει για να ετοιμαστεί για ύπνο, αντιδρά:");buttons(["Συνέχεια","",""],childLine);}
 function childLine(){stage="child";move(false);text("Το παιδί λέει:","Δεν θέλω να σταματήσω να παίζω! Θέλω να συνεχίσω!");buttons(["Πώς θα απαντούσες;","",""],parentView);}
 function parentView(){stage="parent";move(true);text("Η οπτική του γονέα","Το παιδί σου δυσκολεύεται να σταματήσει το παιχνίδι. Πώς θα ανταποκριθείς;");buttons(first,chooseFirst);}
@@ -110,8 +110,27 @@ document.querySelector("a-scene").addEventListener("loaded",()=>{bindTexture("ti
 $("mode360").onclick=()=>{viewMode="360";$("mode360").classList.add("selected");$("modeVR").classList.remove("selected");};
 $("modeVR").onclick=()=>{viewMode="vr";$("modeVR").classList.add("selected");$("mode360").classList.remove("selected");};
 $("instructions").onclick=()=>alert("360°: γύρισε το κινητό ή σύρε με το ποντίκι για να κοιτάξεις γύρω. VR: βάλε το κινητό σε Cardboard και στόχευσε τις επιλογές με το κέντρο του βλέμματος για 1,5 δευτερόλεπτο. Μπορείς επίσης να πατήσεις με το ποντίκι.");
-function start(){$("start").style.display="none";$("top").style.display="flex";intro();}
-$("startBtn").onclick=async()=>{start();if(viewMode==="vr"){try{await document.querySelector("a-scene").enterVR();}catch(e){alert("Η λειτουργία VR δεν ενεργοποιήθηκε. Δοκίμασε Chrome σε Android με HTTPS.");}}};
-$("back").onclick=()=>{$("start").style.display="flex";$("top").style.display="none";$("rig").setAttribute("position","0 1.15 .65");$("rig").setAttribute("rotation","0 0 0");$("choices").setAttribute("position","0 1.15 -1.35");};
+let screenWakeLock=null;
+async function keepScreenAwake(){
+  if(!("wakeLock" in navigator)) return;
+  try {
+    if(screenWakeLock) return;
+    screenWakeLock=await navigator.wakeLock.request("screen");
+    screenWakeLock.addEventListener("release",()=>{screenWakeLock=null;});
+  } catch(err) {
+    console.warn("Screen Wake Lock unavailable:",err);
+  }
+}
+async function start(){
+  $("start").style.display="none";$("top").style.display="flex";intro();
+  await keepScreenAwake();
+}
+document.addEventListener("visibilitychange",async()=>{
+  if(document.visibilityState==="visible" && $("start").style.display==="none"){
+    await keepScreenAwake();
+  }
+});
+$("startBtn").onclick=async()=>{await start();if(viewMode==="vr"){try{await document.querySelector("a-scene").enterVR();}catch(e){alert("Η λειτουργία VR δεν ενεργοποιήθηκε. Δοκίμασε Chrome σε Android με HTTPS.");}}};
+$("back").onclick=()=>{if(screenWakeLock){screenWakeLock.release();screenWakeLock=null;} $("start").style.display="flex";$("top").style.display="none";$("rig").setAttribute("position","0 1.15 .65");$("rig").setAttribute("rotation","0 0 0");$("choices").setAttribute("position","0 1.15 -1.35");};
 $("restart").onclick=intro;
 </script></body></html>
