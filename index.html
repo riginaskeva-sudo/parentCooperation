@@ -59,8 +59,9 @@ h1{font-size:clamp(25px,4vw,38px);line-height:1.15;margin:12px 0}
  <a-entity light="type:ambient;intensity:.9"></a-entity>
  <a-entity id="rig" position="0 1.55 0">
   <a-camera id="cam" look-controls="enabled:true;mouseEnabled:true;touchEnabled:true;magicWindowTrackingEnabled:true" wasd-controls-enabled="false">
-   <a-entity cursor="fuse:true;fuseTimeout:1300" raycaster="objects:.gazeable;far:8" position="0 0 0"></a-entity>
+   <a-entity cursor="fuse:true;fuseTimeout:1400" raycaster="objects:.gazeable;far:5" position="0 0 0"></a-entity>
    <a-entity position="0 0 -1" geometry="primitive:ring;radiusInner:.008;radiusOuter:.014" material="color:white;shader:flat"></a-entity>
+   <a-entity id="vrHud" position="0 0 -1.75" visible="false"></a-entity>
   </a-camera>
  </a-entity>
 </a-scene>
@@ -86,14 +87,87 @@ const reflections=[
 function chooseMode(m){mode=m;$('mode360').classList.toggle('selected',m==='360');$('modeBR').classList.toggle('selected',m==='br');}
 $('mode360').onclick=()=>chooseMode('360'); $('modeBR').onclick=()=>chooseMode('br');
 $('instructions').onclick=()=>{const p=$('instructionText');p.style.display=p.style.display==='none'?'block':'none';};
-function show(title,msg,buttons){ $('heading').textContent=title; $('message').textContent=msg; $('dialogue').style.display='block'; $('options').innerHTML=''; $('options').style.display=buttons&&buttons.length?'flex':'none'; $('help').style.display=buttons&&buttons.length?'block':'none'; (buttons||[]).forEach((b,i)=>{const el=document.createElement('button');el.className='option gazeable';el.textContent=b.label;el.onclick=b.action;$('options').appendChild(el);});}
-function hideUI(){ $('dialogue').style.display='none';$('options').style.display='none';$('help').style.display='none';}
-function intro(){stage='intro';selected=-1;show('Η ώρα του ύπνου','Το παιδί παίζει στο δωμάτιο. Όταν του ζητάς να σταματήσει και να ετοιμαστεί για ύπνο, αντιδρά:',[{label:'Συνέχεια',action:childLine}]);}
-function childLine(){stage='child';show('Το παιδί λέει:','«Δεν θέλω να σταματήσω να παίζω! Θέλω να συνεχίσω!»',[{label:'Πώς θα απαντούσες;',action:parentChoice}]);}
-function parentChoice(){stage='choice';show('Η δική σου αντίδραση','Επίλεξε την απάντηση που θα έδινες αυθόρμητα:',first.map((v,i)=>({label:(i+1)+'. '+v,action:()=>reaction(i)})));}
-function reaction(i){selected=i;stage='reaction';show('Η αντίδραση του παιδιού',reactions[i],[{label:'Συνέχεια στον αναστοχασμό',action:reflection}]);}
-function reflection(){stage='reflection';show('Σκέψου την επιλογή σου',reflections[selected]+' Τι θα μπορούσες να πεις ώστε να αναγνωρίσεις το συναίσθημα και να διατηρήσεις το όριο;',[{label:'Ολοκλήρωση',action:finish}]);}
-function finish(){stage='end';show('Ολοκλήρωση','Στόχος δεν είναι να βρούμε μια τέλεια φράση, αλλά να συνδυάζουμε την κατανόηση του συναισθήματος με σαφή και σταθερά όρια.',[{label:'Ξεκίνα ξανά',action:intro}]);}
+function show(title,msg,buttons){
+  // In-experience interface is parented to the camera: it stays fixed in the
+  // user's field of view while the panoramic room moves around them.
+  const hud=$('vrHud');
+  hud.innerHTML='';
+  hud.setAttribute('visible','true');
+
+  const panel=document.createElement('a-plane');
+  panel.setAttribute('width','2.25');
+  panel.setAttribute('height', buttons && buttons.length>1 ? '1.85' : '1.35');
+  panel.setAttribute('material','color:#102b3b;opacity:0.91;transparent:true;shader:flat');
+  panel.setAttribute('position','0 0 0');
+  hud.appendChild(panel);
+
+  const titleEl=document.createElement('a-text');
+  titleEl.setAttribute('value',title);
+  titleEl.setAttribute('align','center');
+  titleEl.setAttribute('anchor','center');
+  titleEl.setAttribute('color','#ffffff');
+  titleEl.setAttribute('width','2.0');
+  titleEl.setAttribute('wrap-count','34');
+  titleEl.setAttribute('font','https://cdn.aframe.io/fonts/Exo2Bold.fnt');
+  titleEl.setAttribute('position','0 0.66 0.02');
+  hud.appendChild(titleEl);
+
+  const msgEl=document.createElement('a-text');
+  msgEl.setAttribute('value',msg);
+  msgEl.setAttribute('align','center');
+  msgEl.setAttribute('anchor','center');
+  msgEl.setAttribute('color','#f4f7f8');
+  msgEl.setAttribute('width','1.95');
+  msgEl.setAttribute('wrap-count','39');
+  msgEl.setAttribute('position','0 0.30 0.02');
+  hud.appendChild(msgEl);
+
+  const list=buttons||[];
+  const buttonHeight=list.length>1 ? 0.34 : 0.42;
+  const gap=0.09;
+  const total=list.length*buttonHeight+(list.length-1)*gap;
+  const startY= -0.25 - buttonHeight/2;
+  list.forEach((b,i)=>{
+    const y=startY-i*(buttonHeight+gap);
+    const group=document.createElement('a-entity');
+    group.setAttribute('position',`0 ${y} 0.04`);
+    group.setAttribute('class','gazeable');
+    group.setAttribute('geometry','primitive:plane;width:2.02;height:'+buttonHeight);
+    group.setAttribute('material','color:#28799a;shader:flat');
+    group.setAttribute('text',{
+      value:b.label,align:'center',anchor:'center',color:'#ffffff',
+      width:1.88,wrapCount:44
+    });
+    // Use a child plane + text so the button has a reliable raycast surface.
+    const face=document.createElement('a-plane');
+    face.setAttribute('width','2.02');
+    face.setAttribute('height',buttonHeight);
+    face.setAttribute('material','color:#28799a;shader:flat');
+    group.appendChild(face);
+    const label=document.createElement('a-text');
+    label.setAttribute('value',b.label);
+    label.setAttribute('align','center');
+    label.setAttribute('anchor','center');
+    label.setAttribute('color','#ffffff');
+    label.setAttribute('width','1.88');
+    label.setAttribute('wrap-count','42');
+    label.setAttribute('position','0 0 0.015');
+    group.appendChild(label);
+    group.addEventListener('click',()=>b.action());
+    group.addEventListener('mouseenter',()=>face.setAttribute('material','color:#3d91b2;shader:flat'));
+    group.addEventListener('mouseleave',()=>face.setAttribute('material','color:#28799a;shader:flat'));
+    hud.appendChild(group);
+  });
+  $('dialogue').style.display='none';
+  $('options').style.display='none';
+  $('help').style.display='none';
+}
+function hideUI(){
+  $('vrHud').setAttribute('visible','false');
+  $('dialogue').style.display='none';
+  $('options').style.display='none';
+  $('help').style.display='none';
+}
 $('startBtn').onclick=async()=>{$('startScreen').style.display='none';$('hud').style.display='flex';if(mode==='360'){/* 360° mode: free look on screen */}else{/* browser mode: same scene, no headset */}intro();};
 $('backMenu').onclick=()=>{$('startScreen').style.display='flex';$('hud').style.display='none';hideUI();};
 $('restart').onclick=intro;
